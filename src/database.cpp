@@ -67,6 +67,60 @@ namespace sqlitepp {
 		return false; // never reached, but makes the compiler a tiny bit happier
 	}
 
+	std::set<std::string> database::get_tables(const std::string& schema) {
+		std::string query = "SELECT name FROM " + schema + ".sqlite_master WHERE type='table'";
+		statement stmt{*this, query};
+		std::set<std::string> res;
+		for (auto& e : stmt.iterate<std::string>()) {
+			res.insert(std::get<0>(e));
+		}
+		return res;
+	}
+
+	std::set<std::pair<std::string, std::string>> database::get_schemas() {
+		statement stmt{*this, "PRAGMA database_list"};
+		std::set<std::pair<std::string, std::string>> res;
+		for (auto& e : stmt.iterate<int64_t, std::string, std::string>()) {
+			res.emplace(std::get<1>(e), std::get<2>(e));
+		}
+		return res;
+	}
+
+	int32_t database::get_application_id(const std::string& schema) {
+		statement stmt{*this, "PRAGMA " + schema + ".application_id"};
+		for (auto& e : stmt.iterate<int64_t>()) {
+			return std::get<0>(e);
+		}
+		throw_if_error(SQLITE_INTERNAL, m_handle);
+	}
+
+	void database::set_application_id(int32_t id, const std::string& schema) {
+		exec("PRAGMA " + schema + ".application_id=" + std::to_string(id));
+	}
+
+	int32_t database::get_user_version(const std::string& schema) {
+		statement stmt{*this, "PRAGMA " + schema + ".user_version"};
+		for (auto& e : stmt.iterate<int64_t>()) {
+			return std::get<0>(e);
+		}
+		throw_if_error(SQLITE_INTERNAL, m_handle);
+	}
+
+	void database::set_user_version(int32_t version, const std::string& schema) {
+		exec("PRAGMA " + schema + ".user_version=" + std::to_string(version));
+	}
+
+	void database::load_extension(const std::string& filename, const std::string& entry_point) {
+		sqlite3_db_config(m_handle, SQLITE_DBCONFIG_ENABLE_LOAD_EXTENSION, 1, NULL);
+		char* error = nullptr;
+		auto res = sqlite3_load_extension(m_handle, filename.c_str(), entry_point.empty() ? nullptr : entry_point.c_str(), &error);
+		std::string str_error = error;
+		if (error) sqlite3_free(error);
+		str_error = " " + str_error;
+		if (res != SQLITE_OK)
+			throw std::system_error(make_error_code(static_cast<error_code>(res)), sqlite3_errmsg(m_handle) + str_error);
+	}
+
 	sqlite3* database::raw() const noexcept { return m_handle; }
 
 	bool is_threadsafe() noexcept {
