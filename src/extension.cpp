@@ -76,100 +76,100 @@ namespace sqlitepp {
 #endif
 	}
 
-    sqlite3_context* inplace_context::context_from_this() const noexcept {
+	sqlite3_context* inplace_context::context_from_this() const noexcept {
 		return reinterpret_cast<sqlite3_context*>(const_cast<inplace_context*>(this));
-    }
+	}
 
 	inplace_context* inplace_context::from_context(sqlite3_context* val) {
 		return reinterpret_cast<inplace_context*>(val);
-    }
+	}
 
-    sqlite3* inplace_context::get_db_handle() const noexcept {
-        return sqlite3_context_db_handle(context_from_this());
-    }
+	sqlite3* inplace_context::get_db_handle() const noexcept {
+		return sqlite3_context_db_handle(context_from_this());
+	}
 
-    database inplace_context::get_db() const noexcept {
-        return database{ get_db_handle(), false };
-    }
+	database inplace_context::get_db() const noexcept {
+		return database{get_db_handle(), false};
+	}
 
-    void* inplace_context::aggregate_context(size_t nbytes) noexcept {
-        return sqlite3_aggregate_context(context_from_this(), nbytes);
-    }
+	void* inplace_context::aggregate_context(size_t nbytes) noexcept {
+		return sqlite3_aggregate_context(context_from_this(), nbytes);
+	}
 
-    void* inplace_context::get_auxdata(int N) const noexcept {
-        return sqlite3_get_auxdata(context_from_this(), N);
-    }
+	void* inplace_context::get_auxdata(int N) const noexcept {
+		return sqlite3_get_auxdata(context_from_this(), N);
+	}
 
-    void inplace_context::set_auxdata(int N, void* ptr, void (*destructor)(void*)) noexcept {
-        sqlite3_set_auxdata(context_from_this(), N, ptr, destructor);
-    }
+	void inplace_context::set_auxdata(int N, void* ptr, void (*destructor)(void*)) noexcept {
+		sqlite3_set_auxdata(context_from_this(), N, ptr, destructor);
+	}
 
-    void* inplace_context::get_userdata() const noexcept {
-        return sqlite3_user_data(context_from_this());
-    }
-    
-    void inplace_context::error(const std::string& e) noexcept {
-        sqlite3_result_error(context_from_this(), e.data(), e.size());
-    }
+	void* inplace_context::get_userdata() const noexcept {
+		return sqlite3_user_data(context_from_this());
+	}
 
-    void inplace_context::error(const std::wstring& e) noexcept {
-        sqlite3_result_error16(context_from_this(), e.data(), e.size());
-    }
+	void inplace_context::error(const std::string& e) noexcept {
+		sqlite3_result_error(context_from_this(), e.data(), e.size());
+	}
 
-    void inplace_context::error_toobig() noexcept {
-        sqlite3_result_error_toobig(context_from_this());
-    }
+	void inplace_context::error(const std::wstring& e) noexcept {
+		sqlite3_result_error16(context_from_this(), e.data(), e.size());
+	}
 
-    void inplace_context::error_nomem() noexcept {
-        sqlite3_result_error_nomem(context_from_this());
-    }
+	void inplace_context::error_toobig() noexcept {
+		sqlite3_result_error_toobig(context_from_this());
+	}
 
-    void inplace_context::error_code(int errc) noexcept {
-        sqlite3_result_error_code(context_from_this(), errc);
-    }
+	void inplace_context::error_nomem() noexcept {
+		sqlite3_result_error_nomem(context_from_this());
+	}
 
-    void inplace_context::result_blob(const void* ptr, size_t len) noexcept {
-        sqlite3_result_blob64(context_from_this(), ptr, len, SQLITE_TRANSIENT);
-    }
+	void inplace_context::error_code(int errc) noexcept {
+		sqlite3_result_error_code(context_from_this(), errc);
+	}
 
-    void inplace_context::result_double(double d) noexcept {
-        sqlite3_result_double(context_from_this(), d);
-    }
+	void inplace_context::result_blob(const void* ptr, size_t len) noexcept {
+		sqlite3_result_blob64(context_from_this(), ptr, len, SQLITE_TRANSIENT);
+	}
 
-    void inplace_context::result_int(int64_t d) noexcept {
-        sqlite3_result_int64(context_from_this(), d);
-    }
+	void inplace_context::result_double(double d) noexcept {
+		sqlite3_result_double(context_from_this(), d);
+	}
 
-    void inplace_context::result_null() noexcept {
-        sqlite3_result_null(context_from_this());
-    }
+	void inplace_context::result_int(int64_t d) noexcept {
+		sqlite3_result_int64(context_from_this(), d);
+	}
 
-    void inplace_context::result_text(const std::string& val) noexcept {
-        sqlite3_result_text64(context_from_this(), val.data(), val.size(), SQLITE_TRANSIENT, SQLITE_UTF8);
-    }
+	void inplace_context::result_null() noexcept {
+		sqlite3_result_null(context_from_this());
+	}
 
-    void inplace_context::result_text(const std::wstring& val) noexcept {
-        sqlite3_result_text16(context_from_this(), val.data(), val.size(), SQLITE_TRANSIENT);
-    }
+	void inplace_context::result_text(const std::string& val) noexcept {
+		sqlite3_result_text64(context_from_this(), val.data(), val.size(), SQLITE_TRANSIENT, SQLITE_UTF8);
+	}
 
-    void inplace_context::result_value(sqlite3_value* val) noexcept {
-        sqlite3_result_value(context_from_this(), val);
-    }
+	void inplace_context::result_text(const std::wstring& val) noexcept {
+		sqlite3_result_text16(context_from_this(), val.data(), val.size(), SQLITE_TRANSIENT);
+	}
 
-    void inplace_context::result_value(inplace_value* val) noexcept {
-        sqlite3_result_value(context_from_this(), val->value_from_this());
-    }
+	void inplace_context::result_value(sqlite3_value* val) noexcept {
+		sqlite3_result_value(context_from_this(), val);
+	}
 
-    void inplace_context::result_zeroblob(uint64_t num_bytes) noexcept {
-        sqlite3_result_zeroblob64(context_from_this(), num_bytes);
-    }
+	void inplace_context::result_value(inplace_value* val) noexcept {
+		sqlite3_result_value(context_from_this(), val->value_from_this());
+	}
 
-    void inplace_context::result_pointer(void* ptr, const char* type, void(*destructor)(void*)) noexcept {
-        sqlite3_result_pointer(context_from_this(), ptr, type, destructor);
-    }
+	void inplace_context::result_zeroblob(uint64_t num_bytes) noexcept {
+		sqlite3_result_zeroblob64(context_from_this(), num_bytes);
+	}
 
-    void inplace_context::result_subtype(unsigned int n) noexcept {
-        sqlite3_result_subtype(context_from_this(), n);
-    }
+	void inplace_context::result_pointer(void* ptr, const char* type, void (*destructor)(void*)) noexcept {
+		sqlite3_result_pointer(context_from_this(), ptr, type, destructor);
+	}
+
+	void inplace_context::result_subtype(unsigned int n) noexcept {
+		sqlite3_result_subtype(context_from_this(), n);
+	}
 
 } // namespace sqlitepp

@@ -74,20 +74,19 @@ TEST(DISABLED_SQLITEPP_Database, LoadExtension) {
 	db.load_extension("myextension");
 }
 
-
 TEST(SQLITEPP_Database, CustomFunction) {
 	database db;
 	db.create_function("noop", 1, encoding::utf8, [](inplace_context* ctx, int argc, inplace_value** argv) {
-        if(argc != 1) {
-            return ctx->error("missing argument to noop");
-        }
-        return ctx->result_value(argv[0]);
-    });
+		if (argc != 1) {
+			return ctx->error("missing argument to noop");
+		}
+		return ctx->result_value(argv[0]);
+	});
 
-    statement stmt{db, "SELECT noop(42);"};
-    for(auto& e : stmt.iterate<int64_t>()) {
-        ASSERT_EQ(std::get<int64_t>(e), 42);
-        return;
-    }
-    FAIL();
+	statement stmt{db, "SELECT noop(42);"};
+	for (auto& e : stmt.iterate<int64_t>()) {
+		ASSERT_EQ(std::get<int64_t>(e), 42);
+		return;
+	}
+	FAIL();
 }
