@@ -13,6 +13,7 @@ set(SQLITEPP_CMAKE_FILES_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/cmake/sqlitepp)
 set(SQLITEPP_SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/database.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/error_code.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/extension.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/orm.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/result_iterator.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/statement.cpp

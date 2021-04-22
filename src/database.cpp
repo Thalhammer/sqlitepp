@@ -5,7 +5,7 @@
 
 namespace sqlitepp {
 	database::database(const std::string& filename)
-		: m_handle(nullptr) {
+		: m_handle(nullptr), m_do_close{true} {
 		if (SQLITE_VERSION_NUMBER != libversion_number())
 			throw std::logic_error("version missmatch between library and header files");
 
@@ -16,7 +16,8 @@ namespace sqlitepp {
 	}
 
 	database::~database() noexcept {
-		sqlite3_close_v2(m_handle);
+		if(m_do_close && m_handle)
+            sqlite3_close_v2(m_handle);
 	}
 
 	void database::exec(const std::string& query, std::function<void(int, char**, char**)> fn) {
@@ -120,6 +121,81 @@ namespace sqlitepp {
 		if (res != SQLITE_OK)
 			throw std::system_error(make_error_code(static_cast<error_code>(res)), sqlite3_errmsg(m_handle) + str_error);
 	}
+
+    void database::create_function(const std::string& name, int nArgs, encoding eTextRep, void* udata,
+                                    void(*func)(sqlite3_context*,int,sqlite3_value**), void(*udata_destruct)(void*)) {
+        auto res = sqlite3_create_function_v2(m_handle, name.c_str(), nArgs, static_cast<int>(eTextRep), udata, func, nullptr, nullptr, udata_destruct);
+        throw_if_error(res, m_handle);
+    }
+
+    void database::create_function(const std::string& name, int nArgs, encoding eTextRep, void* udata,
+                                    void(*step)(sqlite3_context*,int,sqlite3_value**), void(*final)(sqlite3_context*),
+                                    void(*udata_destruct)(void*)) {
+        auto res = sqlite3_create_function_v2(m_handle, name.c_str(), nArgs, static_cast<int>(eTextRep), udata, nullptr, step, final, udata_destruct);
+        throw_if_error(res, m_handle);
+    }
+
+    void database::create_function(const std::string& name, int nArgs, encoding eTextRep, std::function<void(inplace_context*, int, inplace_value**)> func) {
+        struct my_info {
+            std::function<void(inplace_context*, int, inplace_value**)> m_func;
+        };
+        auto mem = sqlite3_malloc(sizeof(my_info));
+        if(!mem) throw_if_error(SQLITE_NOMEM, m_handle);
+        auto info = new(mem) my_info{ func };
+        try {
+            create_function(name, nArgs, eTextRep, info, [](sqlite3_context* ctx, int args, sqlite3_value** argv) {
+                auto info = reinterpret_cast<my_info*>(sqlite3_user_data(ctx));
+                if(!info) {
+                    sqlite3_result_error_code(ctx, SQLITE_INTERNAL);
+                    return;
+                }
+                info->m_func(reinterpret_cast<inplace_context*>(ctx), args, reinterpret_cast<inplace_value**>(argv));
+            }, [](void* ptr) {
+                auto info = reinterpret_cast<my_info*>(ptr);
+                if(info) info->~my_info();
+                sqlite3_free(info);
+            });
+        } catch(...) {
+            info->~my_info();
+            sqlite3_free(info);
+            throw;
+        }
+    }
+    
+    void database::create_function(const std::string& name, int nArgs, encoding eTextRep, std::function<void(inplace_context*, int, inplace_value**)> step, std::function<void(inplace_context*)> generateResult) {
+        struct my_info {
+            std::function<void(inplace_context*, int, inplace_value**)> m_step;
+            std::function<void(inplace_context*)> m_final;
+        };
+        auto mem = sqlite3_malloc(sizeof(my_info));
+        if(!mem) throw_if_error(SQLITE_NOMEM, m_handle);
+        auto info = new(mem) my_info{ step, generateResult };
+        try {
+            create_function(name, nArgs, eTextRep, info, [](sqlite3_context* ctx, int args, sqlite3_value** argv) {
+                auto info = reinterpret_cast<my_info*>(sqlite3_user_data(ctx));
+                if(!info) {
+                    sqlite3_result_error_code(ctx, SQLITE_INTERNAL);
+                    return;
+                }
+                info->m_step(reinterpret_cast<inplace_context*>(ctx), args, reinterpret_cast<inplace_value**>(argv));
+            }, [](sqlite3_context* ctx) {
+                auto info = reinterpret_cast<my_info*>(sqlite3_user_data(ctx));
+                if(!info) {
+                    sqlite3_result_error_code(ctx, SQLITE_INTERNAL);
+                    return;
+                }
+                info->m_final(reinterpret_cast<inplace_context*>(ctx));
+            }, [](void* ptr) {
+                auto info = reinterpret_cast<my_info*>(ptr);
+                if(info) info->~my_info();
+                sqlite3_free(info);
+            });
+        } catch(...) {
+            info->~my_info();
+            sqlite3_free(info);
+            throw;
+        }
+    }
 
 	sqlite3* database::raw() const noexcept { return m_handle; }
 

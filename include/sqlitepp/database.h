@@ -4,10 +4,26 @@
 #include <string>
 
 struct sqlite3;
+struct sqlite3_context;
+struct sqlite3_value;
 namespace sqlitepp {
+    enum class encoding {
+        utf8    = 1,
+        utf16le = 2,
+        utf16be = 3,
+        utf16   = 4,
+    };
+
+    class inplace_context;
+    class inplace_value;
 	class database {
 		sqlite3* m_handle;
+        bool m_do_close;
+        friend class inplace_context;
 
+        database(sqlite3* hdl, bool should_close)
+            : m_handle(hdl), m_do_close(should_close)
+        {}
 	public:
 		database(const std::string& filename = ":memory:");
 
@@ -32,6 +48,11 @@ namespace sqlitepp {
 		int32_t get_user_version(const std::string& schema = "main");
 		void set_user_version(int32_t version, const std::string& schema = "main");
 		void load_extension(const std::string& filename, const std::string& entry_point = "");
+        void create_function(const std::string& name, int nArgs, encoding eTextRep, void* udata, void(*func)(sqlite3_context*,int,sqlite3_value**), void(*udata_destruct)(void*));
+        void create_function(const std::string& name, int nArgs, encoding eTextRep, void* udata, void(*step)(sqlite3_context*,int,sqlite3_value**), void(*final)(sqlite3_context*), void(*udata_destruct)(void*));
+        void create_function(const std::string& name, int nArgs, encoding eTextRep, std::function<void(inplace_context*, int, inplace_value**)> func);
+        void create_function(const std::string& name, int nArgs, encoding eTextRep, std::function<void(inplace_context*, int, inplace_value**)> step, std::function<void(inplace_context*)> generateResult);
+
 		sqlite3* raw() const noexcept;
 	};
 
