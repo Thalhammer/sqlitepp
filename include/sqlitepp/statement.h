@@ -10,19 +10,20 @@ namespace sqlitepp {
 		database* m_db;
 		sqlite3_stmt* m_handle;
 
-		template<typename Arg1, typename... Args>
+		template <typename Arg1, typename... Args>
 		void bind_all_impl(size_t idx, Arg1&& arg1, Args&&... args) {
 			this->bind(idx, arg1);
 			this->bind_all_impl(idx + 1, std::forward<Args>(args)...);
 		}
-		
+
 		void bind_all_impl(size_t) {
 		}
 
-		template<typename Tuple, size_t... I>
+		template <typename Tuple, size_t... I>
 		void bind_tuple_impl(const Tuple& args, std::index_sequence<I...>) {
 			bind_all(std::get<I>(args)...);
 		}
+
 	public:
 		statement(database& p, const std::string& query);
 		statement(statement&& other);
@@ -55,12 +56,12 @@ namespace sqlitepp {
 		void bind(size_t idx, int val);
 		void bind(size_t idx, int64_t val);
 
-		template<typename... Args>
+		template <typename... Args>
 		void bind_tuple(std::tuple<Args...>& t) {
 			bind_tuple_impl(t, std::index_sequence_for<Args...>{});
 		}
 
-		template<typename... Args>
+		template <typename... Args>
 		void bind_all(Args&&... args) {
 			this->bind_all_impl(1, std::forward<Args>(args)...);
 		}
@@ -72,7 +73,7 @@ namespace sqlitepp {
 
 		result_iterator iterator();
 
-		template<typename... Types>
+		template <typename... Types>
 		struct iterate_helper {
 			statement* stmt;
 
@@ -83,11 +84,11 @@ namespace sqlitepp {
 				return stl_for_each_iterator<Types...>(nullptr);
 			}
 		};
-		template<typename... Types>
+		template <typename... Types>
 		iterate_helper<Types...> iterate() {
 			return iterate_helper<Types...>{this};
 		}
 
 		void execute();
 	};
-}
+} // namespace sqlitepp

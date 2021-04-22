@@ -11,10 +11,9 @@ namespace sqlitepp {
 		sqlite3_stmt* m_handle;
 		bool m_has_row;
 		result_iterator(sqlite3_stmt* hdl)
-			: m_handle(hdl), m_has_row(false)
-		{}
+			: m_handle(hdl), m_has_row(false) {}
 		friend class statement;
-		template<typename... Types> 
+		template <typename... Types>
 		friend class stl_for_each_iterator;
 
 		void get(size_t idx, double& val) const;
@@ -22,19 +21,20 @@ namespace sqlitepp {
 		void get(size_t idx, std::string& val) const;
 		void get(size_t idx, std::vector<uint8_t>& val) const;
 
-		template<typename Arg1, typename... Args>
+		template <typename Arg1, typename... Args>
 		void get_all_impl(size_t idx, Arg1&& arg1, Args&&... args) const {
 			this->get(idx, arg1);
 			this->get_all_impl(idx + 1, std::forward<Args>(args)...);
 		}
-		
+
 		void get_all_impl(size_t) const {
 		}
 
-		template<typename Tuple, size_t... I>
+		template <typename Tuple, size_t... I>
 		void get_tuple_impl(Tuple& args, std::index_sequence<I...>) const {
 			get_all(std::get<I>(args)...);
 		}
+
 	public:
 		result_iterator(result_iterator&& o);
 		~result_iterator();
@@ -63,17 +63,17 @@ namespace sqlitepp {
 		void column_blob(const std::string& name, std::vector<uint8_t>& out) const;
 		std::string column_string(const std::string& name) const;
 
-		template<typename... Args>
+		template <typename... Args>
 		void get_all(Args&&... args) const {
 			this->get_all_impl(0, std::forward<Args>(args)...);
 		}
 
-		template<typename... Args>
+		template <typename... Args>
 		void get_tuple(std::tuple<Args...>& t) const {
 			get_tuple_impl(t, std::index_sequence_for<Args...>{});
 		}
 
-		template<typename... Args>
+		template <typename... Args>
 		std::tuple<Args...> get_tuple() const {
 			std::tuple<Args...> res;
 			get_tuple(res);
@@ -81,19 +81,19 @@ namespace sqlitepp {
 		}
 	};
 
-	template<typename... Types>
+	template <typename... Types>
 	class stl_for_each_iterator {
 		result_iterator m_result;
 		std::tuple<Types...> m_row;
 		stl_for_each_iterator(sqlite3_stmt* iter)
-			: m_result(iter), m_row()
-		{
-			if(m_result.is_valid()) {
+			: m_result(iter), m_row() {
+			if (m_result.is_valid()) {
 				m_result.next();
 				m_result.get_tuple(m_row);
 			}
 		}
 		friend class statement;
+
 	public:
 		stl_for_each_iterator& operator++() {
 			m_result.next();
@@ -106,13 +106,13 @@ namespace sqlitepp {
 		}
 
 		bool operator!=(const stl_for_each_iterator& other) {
-			if(m_result.is_valid()) {
-				if(other.m_result.is_valid()) throw std::logic_error("invalid use of stl_for_each_iterator");
+			if (m_result.is_valid()) {
+				if (other.m_result.is_valid()) throw std::logic_error("invalid use of stl_for_each_iterator");
 				return !m_result.done();
 			} else {
-				if(!other.m_result.is_valid()) throw std::logic_error("invalid use of stl_for_each_iterator");
+				if (!other.m_result.is_valid()) throw std::logic_error("invalid use of stl_for_each_iterator");
 				return !other.m_result.done();
 			}
 		}
 	};
-}
+} // namespace sqlitepp

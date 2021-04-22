@@ -4,9 +4,9 @@
 #include <sqlitepp/fwd.h>
 
 namespace sqlitepp {
-    namespace orm {
-        class entity {
-            /**
+	namespace orm {
+		class entity {
+			/**
              * \brief The rowid of this entity.
              * 
              * SQLITE always has a primary key, if none is specified
@@ -22,43 +22,43 @@ namespace sqlitepp {
              * NOTE: the behaviour is undefined. Currently the _rowid_ is only changed on the one used
              * NOTE: to delete the row, but this may change in the future.
              */
-            int64_t _rowid_ {-1};
-            sqlitepp::database& m_db;
-            std::vector<db_value> m_db_vals {};
-            void from_result(const sqlitepp::result_iterator& it);
-            void insert();
-            void update();
+			int64_t _rowid_{-1};
+			sqlitepp::database& m_db;
+			std::vector<db_value> m_db_vals{};
+			void from_result(const sqlitepp::result_iterator& it);
+			void insert();
+			void update();
 
-            friend std::vector<std::unique_ptr<entity>> select_multiple(database& db, const class_info& info, const std::string& where, std::vector<db_value> vals);
-            friend std::unique_ptr<entity> select_one(database& db, const class_info& info, const std::string& where, std::vector<db_value> vals);
-        public:
-            explicit entity(sqlitepp::database& db)
-                : m_db(db)
-            {}
-            virtual ~entity() {}
+			friend std::vector<std::unique_ptr<entity>> select_multiple(database& db, const class_info& info, const std::string& where, std::vector<db_value> vals);
+			friend std::unique_ptr<entity> select_one(database& db, const class_info& info, const std::string& where, std::vector<db_value> vals);
 
-            /**
+		public:
+			explicit entity(sqlitepp::database& db)
+				: m_db(db) {}
+			virtual ~entity() {}
+
+			/**
              * \brief Get class info of this entity
              * 
              * This should be valid at least for the duration this object exists.
              */
-            virtual const class_info& get_class_info() const noexcept = 0;
-            /**
+			virtual const class_info& get_class_info() const noexcept = 0;
+			/**
              * \brief Check if this entity was changed
              */
-            bool is_modified() const;
-            /**
+			bool is_modified() const;
+			/**
              * \brief Reset the entity to its original values
              */
-            void reset();
-            /**
+			void reset();
+			/**
              * \brief Persist all changes to the database
              */
-            void save();
-            /**
+			void save();
+			/**
              * \brief Remove the entity from the database
              */
-            void remove();
-        };
-    }
-}
+			void remove();
+		};
+	} // namespace orm
+} // namespace sqlitepp
