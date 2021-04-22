@@ -1,5 +1,6 @@
 #include "sqlitepp/database.h"
 #include "sqlitepp/error_code.h"
+#include "sqlitepp/statement.h"
 #include <cstdio>
 
 namespace sqlitepp {
@@ -45,6 +46,25 @@ namespace sqlitepp {
     size_t database::total_changes() const noexcept {
         return sqlite3_total_changes(m_handle);
     }
+
+    bool database::has_table(const std::string& schema, const std::string& table) {
+        // TODO: Escape weird schema names.
+        // SQLITE allows everything as a table name, see:
+        // https://stackoverflow.com/questions/3694276/what-are-valid-table-names-in-sqlite
+        std::string query = "SELECT COUNT(*) FROM ";
+        if(!schema.empty()) query += schema + ".";
+        query += "sqlite_master WHERE name=? AND type='table'";
+		statement stmt{*this, query};
+        stmt.bind(1, table);
+		for (auto& e : stmt.iterate<int64_t>()) {
+			if (std::get<0>(e) == 1) return true;
+			if (std::get<0>(e) == 0) return false;
+			break;
+		}
+		// This should not be possible
+        throw_if_error(SQLITE_INTERNAL, m_handle);
+        return false; // never reached, but makes the compiler a tiny bit happier
+	}
 
 	sqlite3* database::raw() const noexcept { return m_handle; }
 

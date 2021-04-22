@@ -313,6 +313,19 @@ namespace sqlitepp {
 
         std::string generate_create_table(const class_info& info);
 
+        /**
+         * \brief Class to hold errors found during schema verification
+         */
+        struct verify_result {
+            std::vector<std::string> errors {};
+            bool is_ok() const { return errors.empty(); }
+        };
+        /**
+         * \brief EXPERIMENTAL Schema verification
+         * Checks if the schema provided by info matches what is present in the database
+         */
+        verify_result verify_table_schema(database &db, const class_info &info);
+
         int64_t remove(database& db, const class_info& info, const std::string& where = "", std::vector<db_value> vals = {});
         int64_t count(database& db, const class_info& info, const std::string& where = "", std::vector<db_value> vals = {});
         template<size_t A,size_t B>

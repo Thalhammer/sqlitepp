@@ -21,6 +21,8 @@ namespace sqlitepp {
 		void interrupt();
 		int64_t last_insert_rowid() const noexcept;
 		size_t total_changes() const noexcept;
+        bool has_table(const std::string& table) { return has_table("", table); }
+        bool has_table(const std::string& schema, const std::string& table);
 		sqlite3* raw() const noexcept;
 	};
 

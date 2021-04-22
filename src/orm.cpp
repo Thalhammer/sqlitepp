@@ -1,4 +1,5 @@
 #include "sqlitepp/orm.h"
+#include <set>
 
 namespace sqlitepp {
     namespace orm {
@@ -328,6 +329,355 @@ namespace sqlitepp {
             auto e = info.create(db);
             e->from_result(it);
             return e;
+        }
+
+        namespace {
+        struct table_column
+        {
+            db_integer_type cid;
+            db_text_type name;
+            db_text_type type;
+            db_integer_type non_null;
+            db_text_type dflt_value;
+            db_integer_type pk;
+        };
+        static std::vector<table_column> get_table_columns(database &db, const std::string &schema, const std::string &table)
+        {
+            std::string query = "PRAGMA ";
+            if (!schema.empty())
+                query += schema + ".";
+            query += "table_info(" + table + ");";
+            statement stmt{db, query};
+            auto it = stmt.iterator();
+            std::vector<table_column> res;
+            while (it.next())
+            {
+                table_column col;
+                it.get_all(col.cid, col.name, col.type, col.non_null, col.dflt_value, col.pk);
+                res.push_back(col);
+            }
+            return res;
+        }
+
+        struct table_fk
+        {
+            db_integer_type id;
+            db_integer_type seq;
+            db_text_type table;
+            db_text_type from;
+            db_text_type to;
+            db_text_type on_update;
+            db_text_type on_delete;
+            db_text_type match;
+        };
+        static std::vector<table_fk> get_table_fks(database &db, const std::string &schema, const std::string &table)
+        {
+            std::string query = "PRAGMA ";
+            if (!schema.empty())
+                query += schema + ".";
+            query += "foreign_key_list(" + table + ");";
+            statement stmt{db, query};
+            auto it = stmt.iterator();
+            std::vector<table_fk> res;
+            while (it.next())
+            {
+                table_fk col;
+                it.get_all(col.id, col.seq, col.table, col.from, col.to, col.on_update, col.on_delete, col.match);
+                res.push_back(col);
+            }
+            return res;
+        }
+
+        struct table_uk
+        {
+            db_integer_type seq;
+            db_text_type name;
+            db_integer_type unique;
+            db_text_type origin;
+            db_integer_type partial;
+            struct field
+            {
+                db_integer_type seqno;
+                db_integer_type cid;
+                db_text_type name;
+            };
+            std::vector<field> fields;
+
+            field *get_field_by_name(const std::string &name)
+            {
+                for (auto &e : fields)
+                {
+                    if (e.name == name)
+                        return &e;
+                }
+                return nullptr;
+            }
+        };
+        static std::vector<table_uk> get_table_uks(database &db, const std::string &schema, const std::string &table)
+        {
+            std::string query = "PRAGMA ";
+            if (!schema.empty())
+                query += schema + ".";
+            query += "index_list(" + table + ");";
+            statement stmt{db, query};
+            auto it = stmt.iterator();
+            std::vector<table_uk> res;
+            while (it.next())
+            {
+                table_uk col;
+                it.get_all(col.seq, col.name, col.unique, col.origin, col.partial);
+                if (col.origin != "u")
+                    continue;
+                res.push_back(col);
+            }
+            for (auto &e : res)
+            {
+                query = "PRAGMA ";
+                if (!schema.empty())
+                    query += schema + ".";
+                query += "index_info(" + e.name + ");";
+                statement stmt{db, query};
+                auto it = stmt.iterator();
+                while (it.next())
+                {
+                    table_uk::field col;
+                    it.get_all(col.seqno, col.cid, col.name);
+                    e.fields.push_back(col);
+                }
+            }
+            return res;
+        }
+
+        static fk_action convert_fk_action(const std::string &str)
+        {
+            if (str == "RESTRICT")
+                return fk_action::restrict;
+            if (str == "SET NULL")
+                return fk_action::set_null;
+            if (str == "SET DEFAULT")
+                return fk_action::set_default;
+            if (str == "CASCADE")
+                return fk_action::cascade;
+            return fk_action::no_action;
+        }
+
+        static std::vector<std::set<std::string>> group_uks(const class_info &info)
+        {
+            std::vector<std::set<std::string>> res;
+            std::set<std::string> default_uk;
+            std::vector<std::set<std::string>> single_fields;
+            for (auto &e : info.fields)
+            {
+                if (e.unique_id == 0)
+                    continue;
+                else if (e.unique_id == field_info::UNIQUE_ID_SINGLE_FIELD)
+                {
+                    single_fields.push_back({e.name});
+                }
+                else if (e.unique_id == field_info::UNIQUE_ID_DEFAULT)
+                {
+                    default_uk.insert(e.name);
+                }
+                else if (e.unique_id > 0)
+                {
+                    if (res.size() < e.unique_id)
+                        res.resize(e.unique_id);
+                    res.at(e.unique_id - 1).insert(e.name);
+                }
+            }
+            if (!default_uk.empty())
+                res.push_back(default_uk);
+            for (auto &e : single_fields)
+                res.push_back(std::move(e));
+            return res;
+        }
+
+        static bool uk_match(const std::set<std::string> &uk1, const std::vector<table_uk::field> &uk2)
+        {
+            if (uk1.size() != uk2.size())
+                return false;
+            for (auto &f : uk2)
+            {
+                if (uk1.count(f.name) == 0)
+                    return false;
+            }
+            return true;
+        }
+        }
+
+        verify_result verify_table_schema(database &db, const class_info &info)
+        {
+            verify_result res;
+            // Inconsistent
+            if (info.is_temporary && info.schema != "temp")
+            {
+                res.errors.push_back("class is marked as temporary, but schema name is not 'temp'");
+                return res;
+            }
+            // We dont have the table, no need to proceed
+            if (!db.has_table(info.schema, info.table))
+            {
+                res.errors.push_back("missing table");
+                return res;
+            }
+
+            auto cols = get_table_columns(db, info.schema, info.table);
+            if (cols.size() == 0)
+                return {{"table has no columns"}};
+
+            // Verify that each column in the database is in the class
+            for (auto &e : cols)
+            {
+                auto f = info.get_field_by_name(e.name);
+                // Missing column
+                if (f == nullptr)
+                {
+                    res.errors.push_back("table has extra field " + e.name);
+                    continue;
+                }
+                switch (f->type)
+                {
+                case db_type::text:
+                    if (e.type != "TEXT")
+                        res.errors.push_back("field " + e.name + " has wrong type (expected TEXT, got " + e.type + ")");
+                    break;
+                case db_type::integer:
+                    if (e.type != "INTEGER")
+                        res.errors.push_back("field " + e.name + " has wrong type (expected INTEGER, got " + e.type + ")");
+                    break;
+                case db_type::real:
+                    if (e.type != "REAL")
+                        res.errors.push_back("field " + e.name + " has wrong type (expected REAL, got " + e.type + ")");
+                    break;
+                case db_type::blob:
+                    if (e.type != "BLOB")
+                        res.errors.push_back("field " + e.name + " has wrong type (expected BLOB, got " + e.type + ")");
+                    break;
+                default:
+                    res.errors.push_back("field " + e.name + " has an unknown field type");
+                }
+                // Not null missmatch
+                if (e.non_null != (f->nullable ? 0 : 1))
+                {
+                    if (f->nullable)
+                        res.errors.push_back("field " + e.name + " should be nullable but isn't");
+                    else
+                        res.errors.push_back("field " + e.name + " shouldn't be nullable but is");
+                }
+                // Default value
+                // TODO: if(f->default_value != e.dflt_value) return false;
+                // Primary key missmatch
+                if (e.pk != (f->primary_key ? 1 : 0))
+                {
+                    if (f->primary_key)
+                        res.errors.push_back("field " + e.name + " should be a pk field but isn't");
+                    else
+                        res.errors.push_back("field " + e.name + " shouldn't be a pk field but is");
+                }
+            }
+            // Verify that each field in the class is in the database
+            for (auto &e : info.fields)
+            {
+                bool found = false;
+                for (auto &c : cols)
+                {
+                    if (c.name == e.name)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                    res.errors.push_back("field " + e.name + " is missing in table");
+            }
+
+            auto fks = get_table_fks(db, info.schema, info.table);
+            for (auto &key : fks)
+            {
+                auto f = info.get_field_by_name(key.from);
+                if (f == nullptr)
+                {
+                    res.errors.push_back("field " + key.from + " is referenced in fk but not found in class");
+                    continue;
+                }
+                if (f->fk_table != key.table)
+                    res.errors.push_back("field " + key.from + " should reference table " + f->fk_table + " but references " + key.table);
+                if (f->fk_field != key.to)
+                    res.errors.push_back("field " + key.from + " should reference field " + f->fk_field + " but references " + key.to);
+                if (f->fk_update_action != convert_fk_action(key.on_update))
+                    res.errors.push_back("field " + key.from + " has a different on update action");
+                if (f->fk_del_action != convert_fk_action(key.on_delete))
+                    res.errors.push_back("field " + key.from + " has a different on delete action");
+                if (key.match != "NONE")
+                    res.errors.push_back("field " + key.from + " has a match clause");
+            }
+            for (auto &e : info.fields)
+            {
+                if (e.fk_table.empty())
+                    continue;
+                bool found = false;
+                for (auto &k : fks)
+                {
+                    if (k.from == e.name)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                    res.errors.push_back("field " + e.name + " should reference " + e.fk_table + "." + e.fk_field + " but fk is missing");
+            }
+
+            auto uks = get_table_uks(db, info.schema, info.table);
+            auto uks_expect = group_uks(info);
+            for (auto &e : uks_expect)
+            {
+                bool found = false;
+                for (auto &h : uks)
+                {
+                    if (uk_match(e, h.fields))
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    std::string fields = "";
+                    for (auto &x : e)
+                    {
+                        if (!fields.empty())
+                            fields += ",";
+                        fields += x;
+                    }
+                    res.errors.push_back("could not find unique key for fields " + fields + " in database");
+                }
+            }
+            for (auto &e : uks)
+            {
+                bool found = false;
+                for (auto &h : uks_expect)
+                {
+                    if (uk_match(h, e.fields))
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    std::string fields = "";
+                    for (auto &x : e.fields)
+                    {
+                        if (!fields.empty())
+                            fields += ",";
+                        fields += x.name;
+                    }
+                    res.errors.push_back("extra unique key for fields " + fields + " found in database");
+                }
+            }
+
+            return res;
         }
     }
 }
