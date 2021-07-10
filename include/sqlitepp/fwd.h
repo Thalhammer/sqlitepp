@@ -14,7 +14,7 @@ namespace sqlitepp {
     namespace orm {
         struct class_info;
         struct field_info;
-        struct entity;
+        class entity;
         enum class db_type;
         using db_text_type = std::string;
         using db_integer_type = int64_t;
