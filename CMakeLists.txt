@@ -1,10 +1,26 @@
 cmake_minimum_required(VERSION 3.9)
+
+if(HUNTER_ENABLED)
+	include("cmake/HunterGate.cmake")
+	HunterGate(
+		URL "https://github.com/cpp-pm/hunter/archive/v0.23.311.tar.gz"
+		SHA1 "1a82b9b73055879181cb1466b2ab5d48ee8ae410"
+		LOCAL
+	)
+	message(STATUS "sqlitepp: using hunter for dependency resolution")
+endif()
 project(sqlitepp)
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
-find_package(SQLite3 REQUIRED)
+if(HUNTER_ENABLED)
+	hunter_add_package(sqlite3)
+	find_package(sqlite3 CONFIG REQUIRED)
+else()
+	find_package(SQLite3 REQUIRED)
+endif()
+
 option(SQLITEPP_BUILD_TESTS "Configure CMake to build tests (or not)" OFF)
 
 set(SQLITEPP_INCLUDE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -36,7 +52,11 @@ set(SQLITEPP_TEST_FILES
 add_library(sqlitepp EXCLUDE_FROM_ALL ${SQLITEPP_SOURCE_FILES})
 add_library(sqlitepp::sqlitepp ALIAS sqlitepp) # To match export
 target_compile_features(sqlitepp PUBLIC cxx_std_17)
-target_link_libraries(sqlitepp SQLite::SQLite3)
+if(HUNTER_ENABLED)
+	target_link_libraries(sqlitepp sqlite3::sqlite3)
+else()
+	target_link_libraries(sqlitepp SQLite::SQLite3)
+endif()
 target_include_directories(sqlitepp PUBLIC $<BUILD_INTERFACE:${SQLITEPP_INCLUDE_PATH}>
                                              $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
