@@ -57,6 +57,7 @@ if(HUNTER_ENABLED)
 else()
 	target_link_libraries(sqlitepp SQLite::SQLite3)
 endif()
+target_link_libraries(sqlitepp ${CMAKE_DL_LIBS})
 target_include_directories(sqlitepp PUBLIC $<BUILD_INTERFACE:${SQLITEPP_INCLUDE_PATH}>
                                              $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
