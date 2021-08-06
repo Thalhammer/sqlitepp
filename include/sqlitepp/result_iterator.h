@@ -48,6 +48,8 @@ namespace sqlitepp {
 		size_t column_count() const noexcept;
 		const char* column_name(size_t idx) const;
 		size_t column_index(const std::string& name) const;
+		int column_type(size_t idx) const;
+		bool column_is_null(size_t idx) const;
 		double column_double(size_t idx) const;
 		int64_t column_int64(size_t idx) const;
 		// TODO: Stringview ?
@@ -55,6 +57,9 @@ namespace sqlitepp {
 		std::pair<const void*, size_t> column_blob(size_t idx) const;
 		void column_blob(size_t idx, std::vector<uint8_t>& out) const;
 		std::string column_string(size_t idx) const;
+		
+		int column_type(const std::string& name) const;
+		bool column_is_null(const std::string& name) const;
 		double column_double(const std::string& name) const;
 		int64_t column_int64(const std::string& name) const;
 		// TODO: Stringview ?

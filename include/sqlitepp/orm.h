@@ -170,7 +170,7 @@ namespace sqlitepp {
                     else (static_cast<T*>(e)->*ptr).reset();
                 }, [ptr](const entity* e) -> db_value {
                     if((static_cast<const T*>(e)->*ptr).has_value())
-                        return db_value{static_cast<db_integer_type>(static_cast<const T*>(e)->*ptr.value()) };
+                        return db_value{static_cast<db_integer_type>((static_cast<const T*>(e)->*ptr).value()) };
                     return db_value{db_null_type{}};
                 }, { [attributes](class_info& ci, field_info& fi) { fi.nullable = true; for(auto& e : attributes) e(ci, fi);} });
             }
@@ -194,8 +194,8 @@ namespace sqlitepp {
                         static_cast<T*>(e)->*ptr = std::chrono::system_clock::from_time_t(std::get<db_integer_type>(v));
                     else (static_cast<T*>(e)->*ptr).reset();
                 }, [ptr](const entity* e) -> db_value {
-                    if(static_cast<const T*>(e)->*ptr.has_value())
-                        return db_value{static_cast<db_integer_type>(std::chrono::system_clock::to_time_t(static_cast<const T*>(e)->*ptr.value())) };
+                    if((static_cast<const T*>(e)->*ptr).has_value())
+                        return db_value{static_cast<db_integer_type>(std::chrono::system_clock::to_time_t((static_cast<const T*>(e)->*ptr).value())) };
                     return db_value{db_null_type{}};
                 }, { [attributes](class_info& ci, field_info& fi) { fi.nullable = true; for(auto& e : attributes) e(ci, fi);} });
             }
@@ -206,8 +206,8 @@ namespace sqlitepp {
                         static_cast<T*>(e)->*ptr = std::get<db_text_type>(v);
                     else (static_cast<T*>(e)->*ptr).reset();
                 }, [ptr](const entity* e) -> db_value {
-                    if(static_cast<const T*>(e)->*ptr.has_value())
-                        return db_value{static_cast<db_text_type>(static_cast<const T*>(e)->*ptr.value()) };
+                    if((static_cast<const T*>(e)->*ptr).has_value())
+                        return db_value{static_cast<db_text_type>((static_cast<const T*>(e)->*ptr).value()) };
                     return db_value{db_null_type{}};
                 }, { [attributes](class_info& ci, field_info& fi) { fi.nullable = true; for(auto& e : attributes) e(ci, fi);} });
             }
@@ -218,8 +218,8 @@ namespace sqlitepp {
                         static_cast<T*>(e)->*ptr = std::get<db_real_type>(v);
                     else (static_cast<T*>(e)->*ptr).reset();
                 }, [ptr](const entity* e) -> db_value {
-                    if(static_cast<const T*>(e)->*ptr.has_value())
-                        return db_value{static_cast<db_real_type>(static_cast<const T*>(e)->*ptr.value()) };
+                    if((static_cast<const T*>(e)->*ptr).has_value())
+                        return db_value{static_cast<db_real_type>((static_cast<const T*>(e)->*ptr).value()) };
                     return db_value{db_null_type{}};
                 }, { [attributes](class_info& ci, field_info& fi) { fi.nullable = true; for(auto& e : attributes) e(ci, fi);} });
             }
@@ -230,8 +230,8 @@ namespace sqlitepp {
                         static_cast<T*>(e)->*ptr = std::get<db_blob_type>(v);
                     else (static_cast<T*>(e)->*ptr).reset();
                 }, [ptr](const entity* e) -> db_value {
-                    if(static_cast<const T*>(e)->*ptr.has_value())
-                        return db_value{static_cast<db_blob_type>(static_cast<const T*>(e)->*ptr.value()) };
+                    if((static_cast<const T*>(e)->*ptr).has_value())
+                        return db_value{static_cast<db_blob_type>((static_cast<const T*>(e)->*ptr).value()) };
                     return db_value{db_null_type{}};
                 }, { [attributes](class_info& ci, field_info& fi) { fi.nullable = true; for(auto& e : attributes) e(ci, fi);} });
             }

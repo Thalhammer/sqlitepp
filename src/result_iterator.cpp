@@ -75,6 +75,16 @@ namespace sqlitepp {
 		abort(); // Never reached as the above always throws
 	}
 
+	int result_iterator::column_type(size_t idx) const {
+		if(idx >= column_count())
+			throw_if_error(SQLITE_RANGE, m_handle);
+		return sqlite3_column_type(m_handle, idx);
+	}
+
+	bool result_iterator::column_is_null(size_t idx) const {
+		return column_type(idx) == SQLITE_NULL;
+	}
+
 	double result_iterator::column_double(size_t idx) const {
 		if(idx >= column_count())
 			throw_if_error(SQLITE_RANGE, m_handle);
@@ -109,6 +119,14 @@ namespace sqlitepp {
 	std::string result_iterator::column_string(size_t idx) const {
 	    auto txt = column_text(idx);
 	    return std::string(txt.first, txt.second);
+	}
+
+	int result_iterator::column_type(const std::string& name) const {
+		return column_type(column_index(name));
+	}
+
+	bool result_iterator::column_is_null(const std::string& name) const {
+		return column_is_null(column_index(name));
 	}
 
 	double result_iterator::column_double(const std::string& name) const {

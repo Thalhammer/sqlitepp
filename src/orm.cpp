@@ -24,19 +24,22 @@ namespace sqlitepp {
             for(size_t i=0; i<info.fields.size(); i++) {
                 auto& e = info.fields[i];
                 db_value val{db_null_type{}};
-                switch(e.type) {
-                case db_type::blob: {
-                    auto data = it.column_blob(e.name);
-                    val.emplace<db_blob_type>(data.second);
-                    std::copy(static_cast<const uint8_t*>(data.first),
-                        static_cast<const uint8_t*>(data.first) + data.second,
-                        std::get<db_blob_type>(val).data());
-                    break;
-                }
-                case db_type::text: val = it.column_string(e.name); break;
-                case db_type::real: val = it.column_double(e.name); break;
-                case db_type::integer: val = it.column_int64(e.name); break;
-                }
+				auto idx = it.column_index(e.name);
+				if(!it.column_is_null(idx)) {
+					switch(e.type) {
+					case db_type::blob: {
+						auto data = it.column_blob(idx);
+						val.emplace<db_blob_type>(data.second);
+						std::copy(static_cast<const uint8_t*>(data.first),
+							static_cast<const uint8_t*>(data.first) + data.second,
+							std::get<db_blob_type>(val).data());
+						break;
+					}
+					case db_type::text: val = it.column_string(idx); break;
+					case db_type::real: val = it.column_double(idx); break;
+					case db_type::integer: val = it.column_int64(idx); break;
+					}
+				}
                 e.setter(this, val);
                 this->m_db_vals[i] = val;
             }
