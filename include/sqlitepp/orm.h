@@ -94,8 +94,10 @@ namespace sqlitepp {
                     e(m_info);
                 }
             }
-            // Special overload for rowid columns
-            builder& field(const std::string& name, const db_integer_type T::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
+            
+			// Special overload for rowid columns
+            template<typename Base, typename std::enable_if<std::is_base_of<Base, T>::value>::type* = nullptr>
+			builder& field(const std::string& name, const db_integer_type Base::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
                 return field(name, db_type::integer, [ptr](entity* e, const db_value& v) {
                     *const_cast<db_integer_type*>(&(static_cast<T*>(e)->*ptr)) = std::get<db_integer_type>(v);
                 }, [ptr](const entity* e) -> db_value {
@@ -107,17 +109,17 @@ namespace sqlitepp {
             /** =============   Normal fields    ================**/
 
             // Special overload for enum class columns
-            template<typename U, typename std::enable_if<std::is_enum<U>::value>::type* = nullptr>
+            template<typename U, typename Base, typename std::enable_if<std::is_enum<U>::value && std::is_base_of<Base, T>::value>::type* = nullptr>
             typename std::enable_if<std::is_convertible<typename std::underlying_type<U>::type, db_integer_type>::value, builder&>::type
-            field(const std::string& name, U T::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
+            field(const std::string& name, U Base::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
                 return field(name, db_type::integer, [ptr](entity* e, const db_value& v) {
                     static_cast<T*>(e)->*ptr = static_cast<U>(std::get<db_integer_type>(v));
                 }, [ptr](const entity* e) -> db_value {
                     return db_value{static_cast<db_integer_type>(static_cast<const T*>(e)->*ptr) };
                 }, attributes);
             }
-            template<typename U, typename std::enable_if<!std::is_enum<U>::value && std::is_convertible<U, db_integer_type>::value && !std::is_floating_point<U>::value>::type* = nullptr>
-            builder& field(const std::string& name, U T::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
+            template<typename U, typename Base, typename std::enable_if<!std::is_enum<U>::value && std::is_convertible<U, db_integer_type>::value && !std::is_floating_point<U>::value && std::is_base_of<Base, T>::value>::type* = nullptr>
+            builder& field(const std::string& name, U Base::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
                 return field(name, db_type::integer, [ptr](entity* e, const db_value& v) {
                     static_cast<T*>(e)->*ptr = static_cast<U>(std::get<db_integer_type>(v));
                 }, [ptr](const entity* e) -> db_value {
@@ -125,32 +127,32 @@ namespace sqlitepp {
                 }, attributes);
             }
             // Special overload for time values
-            template<typename U, typename std::enable_if<std::is_same<U, std::chrono::system_clock::time_point>::value>::type* = nullptr>
-            builder& field(const std::string& name, U T::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
+            template<typename U, typename Base, typename std::enable_if<std::is_same<U, std::chrono::system_clock::time_point>::value && std::is_base_of<Base, T>::value>::type* = nullptr>
+            builder& field(const std::string& name, U Base::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
                 return field(name, db_type::integer, [ptr](entity* e, const db_value& v) {
                     static_cast<T*>(e)->*ptr = std::chrono::system_clock::from_time_t(std::get<db_integer_type>(v));
                 }, [ptr](const entity* e) -> db_value {
                     return db_value{static_cast<db_integer_type>(std::chrono::system_clock::to_time_t(static_cast<const T*>(e)->*ptr)) };
                 }, attributes);
             }
-            template<typename U, typename std::enable_if<std::is_convertible<U, db_text_type>::value>::type* = nullptr>
-            builder& field(const std::string& name, U T::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
+            template<typename U, typename Base, typename std::enable_if<std::is_convertible<U, db_text_type>::value && std::is_base_of<Base, T>::value>::type* = nullptr>
+            builder& field(const std::string& name, U Base::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
                 return field(name, db_type::text, [ptr](entity* e, const db_value& v) {
                     static_cast<T*>(e)->*ptr = std::get<db_text_type>(v);
                 }, [ptr](const entity* e) -> db_value {
                     return db_value{static_cast<db_text_type>(static_cast<const T*>(e)->*ptr) };
                 }, attributes);
             }
-            template<typename U, typename std::enable_if<std::is_convertible<U, db_real_type>::value && std::is_floating_point<U>::value>::type* = nullptr>
-            builder& field(const std::string& name, U T::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
+            template<typename U, typename Base, typename std::enable_if<std::is_convertible<U, db_real_type>::value && std::is_floating_point<U>::value && std::is_base_of<Base, T>::value>::type* = nullptr>
+            builder& field(const std::string& name, U Base::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
                 return field(name, db_type::real, [ptr](entity* e, const db_value& v) {
                     static_cast<T*>(e)->*ptr = std::get<db_real_type>(v);
                 }, [ptr](const entity* e) -> db_value {
                     return db_value{static_cast<db_real_type>(static_cast<const T*>(e)->*ptr) };
                 }, attributes);
             }
-            template<typename U, typename std::enable_if<std::is_convertible<U, db_blob_type>::value>::type* = nullptr>
-            builder& field(const std::string& name, U T::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
+            template<typename U, typename Base, typename std::enable_if<std::is_convertible<U, db_blob_type>::value && std::is_base_of<Base, T>::value>::type* = nullptr>
+            builder& field(const std::string& name, U Base::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
                 return field(name, db_type::blob, [ptr](entity* e, const db_value& v) {
                     static_cast<T*>(e)->*ptr = std::get<db_blob_type>(v);
                 }, [ptr](const entity* e) -> db_value {
@@ -161,9 +163,9 @@ namespace sqlitepp {
             /** =============   Optional fields    ================**/
 
             // Special overload for enum class columns
-            template<typename U, typename std::enable_if<std::is_enum<U>::value>::type* = nullptr>
+            template<typename U, typename Base, typename std::enable_if<std::is_enum<U>::value && std::is_base_of<Base, T>::value>::type* = nullptr>
             typename std::enable_if<std::is_convertible<typename std::underlying_type<U>::type, db_integer_type>::value, builder&>::type
-            field(const std::string& name, std::optional<U> T::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
+            field(const std::string& name, std::optional<U> Base::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
                 return field(name, db_type::integer, [ptr](entity* e, const db_value& v) {
                     if(std::holds_alternative<db_integer_type>(v))
                         static_cast<T*>(e)->*ptr = static_cast<U>(std::get<db_integer_type>(v));
@@ -174,8 +176,8 @@ namespace sqlitepp {
                     return db_value{db_null_type{}};
                 }, { [attributes](class_info& ci, field_info& fi) { fi.nullable = true; for(auto& e : attributes) e(ci, fi);} });
             }
-            template<typename U, typename std::enable_if<!std::is_enum<U>::value && std::is_convertible<U, db_integer_type>::value && !std::is_floating_point<U>::value>::type* = nullptr>
-            builder& field(const std::string& name, std::optional<U> T::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
+            template<typename U, typename Base, typename std::enable_if<!std::is_enum<U>::value && std::is_convertible<U, db_integer_type>::value && !std::is_floating_point<U>::value && std::is_base_of<Base, T>::value>::type* = nullptr>
+            builder& field(const std::string& name, std::optional<U> Base::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
                 return field(name, db_type::integer, [ptr](entity* e, const db_value& v) {
                     if(std::holds_alternative<db_integer_type>(v))
                         static_cast<T*>(e)->*ptr = static_cast<U>(std::get<db_integer_type>(v));
@@ -187,8 +189,8 @@ namespace sqlitepp {
                 }, { [attributes](class_info& ci, field_info& fi) { fi.nullable = true; for(auto& e : attributes) e(ci, fi);} });
             }
             // Special overload for time values
-            template<typename U, typename std::enable_if<std::is_same<U, std::chrono::system_clock::time_point>::value>::type* = nullptr>
-            builder& field(const std::string& name, std::optional<U> T::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
+            template<typename U, typename Base, typename std::enable_if<std::is_same<U, std::chrono::system_clock::time_point>::value && std::is_base_of<Base, T>::value>::type* = nullptr>
+            builder& field(const std::string& name, std::optional<U> Base::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
                 return field(name, db_type::integer, [ptr](entity* e, const db_value& v) {
                     if(std::holds_alternative<db_integer_type>(v))
                         static_cast<T*>(e)->*ptr = std::chrono::system_clock::from_time_t(std::get<db_integer_type>(v));
@@ -199,8 +201,8 @@ namespace sqlitepp {
                     return db_value{db_null_type{}};
                 }, { [attributes](class_info& ci, field_info& fi) { fi.nullable = true; for(auto& e : attributes) e(ci, fi);} });
             }
-            template<typename U, typename std::enable_if<std::is_convertible<U, db_text_type>::value>::type* = nullptr>
-            builder& field(const std::string& name, std::optional<U> T::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
+            template<typename U, typename Base, typename std::enable_if<std::is_convertible<U, db_text_type>::value && std::is_base_of<Base, T>::value>::type* = nullptr>
+            builder& field(const std::string& name, std::optional<U> Base::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
                 return field(name, db_type::text, [ptr](entity* e, const db_value& v) {
                     if(std::holds_alternative<db_text_type>(v))
                         static_cast<T*>(e)->*ptr = std::get<db_text_type>(v);
@@ -211,8 +213,8 @@ namespace sqlitepp {
                     return db_value{db_null_type{}};
                 }, { [attributes](class_info& ci, field_info& fi) { fi.nullable = true; for(auto& e : attributes) e(ci, fi);} });
             }
-            template<typename U, typename std::enable_if<std::is_convertible<U, db_real_type>::value && std::is_floating_point<U>::value>::type* = nullptr>
-            builder& field(const std::string& name, std::optional<U> T::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
+            template<typename U, typename Base, typename std::enable_if<std::is_convertible<U, db_real_type>::value && std::is_floating_point<U>::value && std::is_base_of<Base, T>::value>::type* = nullptr>
+            builder& field(const std::string& name, std::optional<U> Base::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
                 return field(name, db_type::real, [ptr](entity* e, const db_value& v) {
                     if(std::holds_alternative<db_real_type>(v))
                         static_cast<T*>(e)->*ptr = std::get<db_real_type>(v);
@@ -223,8 +225,8 @@ namespace sqlitepp {
                     return db_value{db_null_type{}};
                 }, { [attributes](class_info& ci, field_info& fi) { fi.nullable = true; for(auto& e : attributes) e(ci, fi);} });
             }
-            template<typename U, typename std::enable_if<std::is_convertible<U, db_blob_type>::value>::type* = nullptr>
-            builder& field(const std::string& name, std::optional<U> T::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
+            template<typename U, typename Base, typename std::enable_if<std::is_convertible<U, db_blob_type>::value && std::is_base_of<Base, T>::value>::type* = nullptr>
+            builder& field(const std::string& name, std::optional<U> Base::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
                 return field(name, db_type::blob, [ptr](entity* e, const db_value& v) {
                     if(std::holds_alternative<db_blob_type>(v))
                         static_cast<T*>(e)->*ptr = std::get<db_blob_type>(v);
@@ -238,8 +240,8 @@ namespace sqlitepp {
             
             /** =============   Array fields    ================**/
 
-            template<typename U, size_t Size, typename std::enable_if<std::is_convertible<U, db_integer_type>::value && !std::is_floating_point<U>::value>::type* = nullptr>
-            builder& field(const std::string& name, std::array<U,Size> T::*ptr, size_t index, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
+            template<typename U, size_t Size, typename Base, typename std::enable_if<std::is_convertible<U, db_integer_type>::value && !std::is_floating_point<U>::value && std::is_base_of<Base, T>::value>::type* = nullptr>
+            builder& field(const std::string& name, std::array<U,Size> Base::*ptr, size_t index, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
                 return field(name, db_type::integer, [ptr, index](entity* e, const db_value& v) {
                     (static_cast<T*>(e)->*ptr)[index] = std::get<db_integer_type>(v);
                 }, [ptr, index](const entity* e) -> db_value {
@@ -247,32 +249,32 @@ namespace sqlitepp {
                 }, attributes);
             }
             // Special overload for time values
-            template<typename U, size_t Size, typename std::enable_if<std::is_same<U, std::chrono::system_clock::time_point>::value>::type* = nullptr>
-            builder& field(const std::string& name, std::array<U,Size> T::*ptr, size_t index, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
+            template<typename U, size_t Size, typename Base, typename std::enable_if<std::is_same<U, std::chrono::system_clock::time_point>::value && std::is_base_of<Base, T>::value>::type* = nullptr>
+            builder& field(const std::string& name, std::array<U,Size> Base::*ptr, size_t index, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
                 return field(name, db_type::integer, [ptr, index](entity* e, const db_value& v) {
                     (static_cast<T*>(e)->*ptr)[index] = std::chrono::system_clock::from_time_t(std::get<db_integer_type>(v));
                 }, [ptr, index](const entity* e) -> db_value {
                     return db_value{static_cast<db_integer_type>(std::chrono::system_clock::to_time_t((static_cast<const T*>(e)->*ptr)[index])) };
                 }, attributes);
             }
-            template<typename U, size_t Size, typename std::enable_if<std::is_convertible<U, db_text_type>::value>::type* = nullptr>
-            builder& field(const std::string& name, std::array<U,Size> T::*ptr, size_t index, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
+            template<typename U, size_t Size, typename Base, typename std::enable_if<std::is_convertible<U, db_text_type>::value && std::is_base_of<Base, T>::value>::type* = nullptr>
+            builder& field(const std::string& name, std::array<U,Size> Base::*ptr, size_t index, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
                 return field(name, db_type::text, [ptr, index](entity* e, const db_value& v) {
                     (static_cast<T*>(e)->*ptr)[index] = std::get<db_text_type>(v);
                 }, [ptr, index](const entity* e) -> db_value {
                     return db_value{static_cast<db_text_type>((static_cast<const T*>(e)->*ptr)[index]) };
                 }, attributes);
             }
-            template<typename U, size_t Size, typename std::enable_if<std::is_convertible<U, db_real_type>::value && std::is_floating_point<U>::value>::type* = nullptr>
-            builder& field(const std::string& name, std::array<U,Size> T::*ptr, size_t index, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
+            template<typename U, size_t Size, typename Base, typename std::enable_if<std::is_convertible<U, db_real_type>::value && std::is_floating_point<U>::value && std::is_base_of<Base, T>::value>::type* = nullptr>
+            builder& field(const std::string& name, std::array<U,Size> Base::*ptr, size_t index, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
                 return field(name, db_type::real, [ptr, index](entity* e, const db_value& v) {
                     (static_cast<T*>(e)->*ptr)[index] = std::get<db_real_type>(v);
                 }, [ptr, index](const entity* e) -> db_value {
                     return db_value{static_cast<db_real_type>((static_cast<const T*>(e)->*ptr)[index]) };
                 }, attributes);
             }
-            template<typename U, size_t Size, typename std::enable_if<std::is_convertible<U, db_blob_type>::value>::type* = nullptr>
-            builder& field(const std::string& name, std::array<U,Size> T::*ptr, size_t index, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
+            template<typename U, size_t Size, typename Base, typename std::enable_if<std::is_convertible<U, db_blob_type>::value && std::is_base_of<Base, T>::value>::type* = nullptr>
+            builder& field(const std::string& name, std::array<U,Size> Base::*ptr, size_t index, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
                 return field(name, db_type::blob, [ptr, index](entity* e, const db_value& v) {
                     (static_cast<T*>(e)->*ptr)[index] = std::get<db_blob_type>(v);
                 }, [ptr, index](const entity* e) -> db_value {
@@ -280,14 +282,14 @@ namespace sqlitepp {
                 }, attributes);
             }
 
-            template<typename U, size_t Size, typename std::enable_if<
-                std::is_convertible<U, db_integer_type>::value
+            template<typename U, size_t Size, typename Base, typename std::enable_if<
+                (std::is_convertible<U, db_integer_type>::value
                 || std::is_convertible<U, db_text_type>::value
                 || std::is_convertible<U, db_real_type>::value
                 || std::is_convertible<U, db_blob_type>::value
-                || std::is_same<U, std::chrono::system_clock::time_point>::value
-                >::type* = nullptr>
-            builder& field(const std::string& name, std::array<U,Size> T::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
+                || std::is_same<U, std::chrono::system_clock::time_point>::value)
+				&& std::is_base_of<Base, T>::value>::type* = nullptr>
+            builder& field(const std::string& name, std::array<U,Size> Base::*ptr, std::initializer_list<std::function<void(class_info&, field_info&)>> attributes = {}) {
                 for(size_t i = 0; i < Size; i++) {
                     this->field(name + std::to_string(i), ptr, i, attributes);
                 }
