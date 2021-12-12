@@ -27,24 +27,17 @@ set(SQLITEPP_INCLUDE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(SQLITEPP_CMAKE_FILES_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/cmake/sqlitepp)
 
 set(SQLITEPP_SOURCE_FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/database.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/error_code.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/orm.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/result_iterator.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/statement.cpp
 )
 set(SQLITEPP_HEADER_FILES
+	${CMAKE_CURRENT_SOURCE_DIR}/include/sqlitepp/database.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/sqlitepp/error_code.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/sqlitepp/orm.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/sqlitepp/statement.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/sqlitepp/fwd.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/sqlitepp/database.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/sqlitepp/orm_entity.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/sqlitepp/condition.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/sqlitepp/orm.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/sqlitepp/result_iterator.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/sqlitepp/statement.h
 )
 set(SQLITEPP_TEST_FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/tests/condition_builder.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/database.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/orm.cpp
 )
