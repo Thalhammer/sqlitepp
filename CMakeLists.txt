@@ -14,14 +14,17 @@ project(sqlitepp)
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
-if(HUNTER_ENABLED)
-	hunter_add_package(sqlite3)
-	find_package(sqlite3 CONFIG REQUIRED)
-else()
-	find_package(SQLite3 REQUIRED)
+if(NOT TARGET sqlite3::sqlite3 AND NOT TARGET SQLite::SQLite3)
+    if(HUNTER_ENABLED)
+        hunter_add_package(sqlite3)
+        find_package(sqlite3 CONFIG REQUIRED)
+    else()
+        find_package(SQLite3 REQUIRED)
+    endif()
 endif()
 
 option(SQLITEPP_BUILD_TESTS "Configure CMake to build tests (or not)" OFF)
+option(SQLITEPP_ENABLE_INSTALL "Enable sqlitepp install" ON)
 
 set(SQLITEPP_INCLUDE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(SQLITEPP_CMAKE_FILES_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/cmake/sqlitepp)
@@ -45,32 +48,34 @@ set(SQLITEPP_TEST_FILES
 add_library(sqlitepp EXCLUDE_FROM_ALL ${SQLITEPP_SOURCE_FILES})
 add_library(sqlitepp::sqlitepp ALIAS sqlitepp) # To match export
 target_compile_features(sqlitepp PUBLIC cxx_std_17)
-if(HUNTER_ENABLED)
-	target_link_libraries(sqlitepp sqlite3::sqlite3)
+if(TARGET sqlite3::sqlite3)
+	target_link_libraries(sqlitepp PUBLIC sqlite3::sqlite3)
 else()
-	target_link_libraries(sqlitepp SQLite::SQLite3)
+	target_link_libraries(sqlitepp PUBLIC SQLite::SQLite3)
 endif()
-target_link_libraries(sqlitepp ${CMAKE_DL_LIBS})
+target_link_libraries(sqlitepp PUBLIC ${CMAKE_DL_LIBS})
 target_include_directories(sqlitepp PUBLIC $<BUILD_INTERFACE:${SQLITEPP_INCLUDE_PATH}>
                                              $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
-configure_package_config_file(
-    ${CMAKE_CURRENT_LIST_DIR}/cmake/sqlitepp-config.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/sqlitepp-config.cmake
-    INSTALL_DESTINATION ${SQLITEPP_CMAKE_FILES_INSTALL_DIR})
-write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/sqlitepp-config-version.cmake VERSION 0.1.0 COMPATIBILITY ExactVersion)
-                                             
-install(TARGETS sqlitepp EXPORT sqlitepp-targets PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(EXPORT sqlitepp-targets NAMESPACE sqlitepp:: FILE sqlitepp-targets.cmake DESTINATION ${SQLITEPP_CMAKE_FILES_INSTALL_DIR})
-install(FILES ${SQLITEPP_HEADER_FILES} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/sqlitepp)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/sqlitepp-config.cmake ${CMAKE_CURRENT_BINARY_DIR}/sqlitepp-config-version.cmake
-        DESTINATION ${SQLITEPP_CMAKE_FILES_INSTALL_DIR})
+if(SQLITEPP_ENABLE_INSTALL)
+    configure_package_config_file(
+        ${CMAKE_CURRENT_LIST_DIR}/cmake/sqlitepp-config.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/sqlitepp-config.cmake
+        INSTALL_DESTINATION ${SQLITEPP_CMAKE_FILES_INSTALL_DIR})
+    write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/sqlitepp-config-version.cmake VERSION 0.1.0 COMPATIBILITY ExactVersion)
+                                                
+    install(TARGETS sqlitepp EXPORT sqlitepp-targets PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+    install(EXPORT sqlitepp-targets NAMESPACE sqlitepp:: FILE sqlitepp-targets.cmake DESTINATION ${SQLITEPP_CMAKE_FILES_INSTALL_DIR})
+    install(FILES ${SQLITEPP_HEADER_FILES} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/sqlitepp)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/sqlitepp-config.cmake ${CMAKE_CURRENT_BINARY_DIR}/sqlitepp-config-version.cmake
+            DESTINATION ${SQLITEPP_CMAKE_FILES_INSTALL_DIR})
 
-if(NOT TARGET uninstall)
-    configure_file(
-        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in
-        ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
-        IMMEDIATE @ONLY)
-    add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
+    if(NOT TARGET uninstall)
+        configure_file(
+            ${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in
+            ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
+            IMMEDIATE @ONLY)
+        add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
+    endif()
 endif()
       
 
