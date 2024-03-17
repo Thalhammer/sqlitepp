@@ -310,7 +310,7 @@ namespace sqlitepp {
 			};
 		} // namespace detail
 
-		template <typename T, typename std::enable_if<std::is_base_of<entity, T>::value>::type* = nullptr>
+		template <typename T>
 		class builder {
 			class_info m_info = {};
 

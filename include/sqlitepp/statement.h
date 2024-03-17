@@ -66,7 +66,9 @@ namespace sqlitepp {
 		}
 		void bind(size_t idx, const std::string_view& data, bool is_blob) {
 			if (is_blob) {
-				int res = sqlite3_bind_blob64(m_handle, idx, data.data(), data.size(), SQLITE_TRANSIENT);
+				// sqlite3 seems to threat binding a empty blob as NULL when the ptr is nullptr, so we give it some dummy pointer
+				static char empty_byte;
+				int res = sqlite3_bind_blob64(m_handle, idx, data.data() == nullptr ? &empty_byte : data.data(), data.size(), SQLITE_TRANSIENT);
 				throw_if_error(res, m_handle);
 			} else {
 				int res = sqlite3_bind_text64(m_handle, idx, data.data(), data.size(), SQLITE_TRANSIENT, SQLITE_UTF8);
@@ -84,7 +86,9 @@ namespace sqlitepp {
 		}
 		void bind(size_t idx, const std::string& data, bool is_blob) {
 			if (is_blob) {
-				int res = sqlite3_bind_blob64(m_handle, idx, data.data(), data.size(), SQLITE_TRANSIENT);
+				// sqlite3 seems to threat binding a empty blob as NULL when the ptr is nullptr, so we give it some dummy pointer
+				static char empty_byte;
+				int res = sqlite3_bind_blob64(m_handle, idx, data.data() == nullptr ? &empty_byte : data.data(), data.size(), SQLITE_TRANSIENT);
 				throw_if_error(res, m_handle);
 			} else {
 				int res = sqlite3_bind_text64(m_handle, idx, data.data(), data.size(), SQLITE_TRANSIENT, SQLITE_UTF8);
@@ -94,7 +98,9 @@ namespace sqlitepp {
 #endif
 
 		void bind(size_t idx, const std::vector<uint8_t>& blob) {
-			int res = sqlite3_bind_blob64(m_handle, idx, blob.data(), blob.size(), SQLITE_TRANSIENT);
+			// sqlite3 seems to threat binding a empty blob as NULL when the ptr is nullptr, so we give it some dummy pointer
+			static uint8_t empty_byte;
+			int res = sqlite3_bind_blob64(m_handle, idx, blob.data() == nullptr ? &empty_byte : blob.data(), blob.size(), SQLITE_TRANSIENT);
 			throw_if_error(res, m_handle);
 		}
 		void bind(size_t idx, std::nullptr_t) {
